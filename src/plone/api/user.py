@@ -1,7 +1,11 @@
 from plone import api
 
+import string
+import random
 
-def create(email=None, username=None, password=None, properties=None, *args):
+
+def create(email=None, username=None, password=None, roles=('Member', ),
+           properties={}, *args):
     """Create a user.
 
     :param email: [required] Email for the new user.
@@ -27,10 +31,27 @@ def create(email=None, username=None, password=None, properties=None, *args):
 
     site = api.get_site()
     use_email_as_username = site.portal_properties.use_email_as_username
+
     if not use_email_as_username and not username:
         raise ValueError
 
-    raise NotImplementedError
+    registration = api.get_tool('portal_registration')
+    user_id = email or username
+
+    # Generate a random 8-char password
+    if not password:
+        chars = string.ascii_letters + string.digits
+        password = ''.join(random.choice(chars) for x in range(8))
+
+    properties.update(username=user_id)
+    properties.update(email=email)
+
+    return registration.addMember(
+        user_id,
+        password,
+        roles,
+        properties=properties
+    )
 
 
 def get(username=None, *args):
@@ -49,7 +70,8 @@ def get(username=None, *args):
     if not username:
         raise ValueError
 
-    raise NotImplementedError
+    portal_membership = api.get_tool('portal_membership')
+    return portal_membership.getMemberById(username)
 
 
 def get_current():
@@ -59,7 +81,8 @@ def get_current():
     :rtype: MemberData object
     :Example: :ref:`get_current_user_example`
     """
-    raise NotImplementedError
+    portal_membership = api.get_tool('portal_membership')
+    return portal_membership.getAuthenticatedMember()
 
 
 def get_all():
@@ -69,7 +92,8 @@ def get_all():
     :rtype: List of MemberData objects
     :Example: :ref:`get_all_users_example`
     """
-    raise NotImplementedError
+    portal_membership = api.get_tool('portal_membership')
+    return portal_membership.listMembers()
 
 
 def delete(username=None, user=None, *args):
@@ -93,6 +117,10 @@ def delete(username=None, user=None, *args):
 
     if username and user:
         raise ValueError
+
+    portal_membership = api.get_tool('portal_membership')
+    user_id = username or user.id
+    portal_membership.deleteMembers((user_id,))
 
 
 def change_password(username=None, user=None, password=None, *args):
@@ -153,7 +181,10 @@ def get_property(username=None, user=None, name=None, *args):
     if not name:
         raise ValueError
 
-    raise NotImplementedError
+    if username:
+        user = api.get_tool('portal_membership').getMemberById(username)
+
+    return user.getProperty(name)
 
 
 def set_property(username=None, user=None, name=None, value=None, *args):
@@ -188,7 +219,9 @@ def set_property(username=None, user=None, name=None, value=None, *args):
     if not value:
         raise ValueError
 
-    raise NotImplementedError
+    if username:
+        user = api.get_tool('portal_membership').getMemberById(username)
+    user.getProperties(name=value)
 
 
 def get_groups(username=None, user=None, *args):
@@ -215,7 +248,9 @@ def get_groups(username=None, user=None, *args):
     if username and user:
         raise ValueError
 
-    raise NotImplementedError
+    if username:
+        user = api.get_tool('portal_membership').getMemberById(username)
+    return api.get_tool('portal_groups').getGroupsForPrincipal(user)
 
 
 def join_group(username=None, user=None, groupname=None, group=None, *args):
@@ -253,7 +288,10 @@ def join_group(username=None, user=None, groupname=None, group=None, *args):
     if groupname and group:
         raise ValueError
 
-    raise NotImplementedError
+    user_id = username or user.id
+    group_id = groupname or group.id
+    portal_groups = api.get_tool('portal_groups')
+    portal_groups.addPrincipalToGroup(user_id, group_id)
 
 
 def leave_group(username=None, user=None, groupname=None, group=None, *args):
@@ -291,7 +329,10 @@ def leave_group(username=None, user=None, groupname=None, group=None, *args):
     if groupname and group:
         raise ValueError
 
-    raise NotImplementedError
+    user_id = username or user.id
+    group_id = groupname or group.id
+    portal_groups = api.get_tool('portal_groups')
+    portal_groups.removePrincipalFromGroup(user_id, group_id)
 
 
 def is_anonymous():
@@ -301,7 +342,7 @@ def is_anonymous():
     :rtype: bool
     :Example: :ref:`is_anonymous_example`
     """
-    raise NotImplementedError
+    return api.get_tool('portal_membership').isAnonymousUser()
 
 
 def has_role(role=None, username=None, user=None, *args):
@@ -333,8 +374,9 @@ def has_role(role=None, username=None, user=None, *args):
     raise NotImplementedError
 
 
-def has_permission(permission=None, username=None, user=None, *args):
-    """Check if the user has the specified permission.
+def has_permission(permission=None, username=None, user=None,
+                   object=None, *args):
+    """Check if the user has the specified permission in the given context.
 
     Arguments ``username`` and ``user`` are mutually exclusive. You can either
     set one or the other, but not both. If no ``username` or ``user`` are
@@ -347,6 +389,8 @@ def has_permission(permission=None, username=None, user=None, *args):
     :type username: string
     :param user: User that we are checking the permission for
     :type user: MemberData object
+    :param object: Object that we are checking the permission for
+    :type object: object
     :returns: True if user has the specified permission, False otherwise.
     :rtype: bool
     :Example: :ref:`has_permission_example`
@@ -360,4 +404,10 @@ def has_permission(permission=None, username=None, user=None, *args):
     if username and user:
         raise ValueError
 
-    raise NotImplementedError
+    if not object:
+        raise ValueError
+
+    portal_membership = api.get_tool('portal_membership')
+    if username:
+        user = portal_membership.getMemberById(username)
+    return portal_membership.checkPermission(permission, object)
