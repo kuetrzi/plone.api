@@ -34,8 +34,8 @@ def create(email=None, username=None, password=None, roles=('Member', ),
     if not email:
         raise ValueError("You need to pass the new user's email.")
 
-    site = api.get_site()
-    use_email_as_username = site.portal_properties.use_email_as_username
+    props = api.get_site().portal_properties
+    use_email_as_username = props.site_properties.use_email_as_login
 
     if not use_email_as_username and not username:
         raise ValueError("The site is configured to use username that is not \
