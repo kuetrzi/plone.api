@@ -24,16 +24,22 @@ def create(email=None, username=None, password=None, roles=('Member', ),
     :Example: :ref:`create_user_example`
     """
     if args:
-        raise ValueError('Positional arguments are not allowed!')
+        raise ValueError("Positional arguments are not allowed!")
+
+    # it may happen that someone passes email in the properties dict, catch
+    # that and set the email so the code below this works fine
+    if not email and properties.get('email'):
+        email = properties.get('email')
 
     if not email:
-        raise ValueError
+        raise ValueError("You need to pass the new user's email.")
 
     site = api.get_site()
     use_email_as_username = site.portal_properties.use_email_as_username
 
     if not use_email_as_username and not username:
-        raise ValueError
+        raise ValueError("The site is configured to use username that is not \
+            email so you need to pass a username.")
 
     registration = api.get_tool('portal_registration')
     user_id = email or username
