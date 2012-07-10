@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """Tests for plone.api content."""
-import mock
-import unittest
-from zExceptions import BadRequest
-
 from plone.api import content
 from plone.api.tests.base import INTEGRATION_TESTING
+from zExceptions import BadRequest
+
+import mock
+import unittest
 
 
 class TestPloneApiContent(unittest.TestCase):
@@ -27,18 +27,27 @@ class TestPloneApiContent(unittest.TestCase):
 
         """
         self.portal = self.layer['portal']
-        self.portal.manage_delObjects([x.id for x in self.portal.getFolderContents()])  # Clean up
+        self.portal.manage_delObjects(
+            [x.id for x in self.portal.getFolderContents()])  # Clean up
 
-        self.welcome = content.create(type='Document', id='welcome', container=self.portal, strict=True)
-        self.about = content.create(type='Folder', id='about', container=self.portal, strict=True)
-        self.events = content.create(type='Folder', id='events', container=self.portal, strict=True)
+        self.welcome = content.create(
+            type='Document', id='welcome', container=self.portal, strict=True)
+        self.about = content.create(
+            type='Folder', id='about', container=self.portal, strict=True)
+        self.events = content.create(
+            type='Folder', id='events', container=self.portal, strict=True)
 
-        self.team = content.create(container=self.about, type='Document', id='team', strict=True)
-        content.create(container=self.about, type='Document', id='contact', strict=True)
+        self.team = content.create(
+            container=self.about, type='Document', id='team', strict=True)
+        content.create(
+            container=self.about, type='Document', id='contact', strict=True)
 
-        content.create(container=self.events, type='Event', id='training', strict=True)
-        content.create(container=self.events, type='Event', id='conference', strict=True)
-        content.create(container=self.events, type='Event', id='sprint', strict=True)
+        content.create(
+            container=self.events, type='Event', id='training', strict=True)
+        content.create(
+            container=self.events, type='Event', id='conference', strict=True)
+        content.create(
+            container=self.events, type='Event', id='sprint', strict=True)
 
     def test_create_constraints(self):
         """ Test the constraints when creating content """
@@ -47,28 +56,34 @@ class TestPloneApiContent(unittest.TestCase):
         self.assertRaises(ValueError, content.create)
 
         # Check the contraints for the type container
-        self.assertRaises(ValueError, content.create, type='Document', id='test-doc')
+        self.assertRaises(
+            ValueError, content.create, type='Document', id='test-doc')
 
         # Check the contraints for the type parameter
         container = mock.Mock()
-        self.assertRaises(ValueError, content.create, container=container, id='test-doc')
+        self.assertRaises(
+            ValueError, content.create, container=container, id='test-doc')
 
         # Check the contraints for id and title parameters
-        self.assertRaises(ValueError, content.create, container=container, type='Document')
+        self.assertRaises(
+            ValueError, content.create, container=container, type='Document')
 
-        # Check the contraints for the strict parameter, it required the id parameter
+        # Check the contraints for the strict parameter, it required
+        # the id parameter
         self.assertRaises(
             ValueError, content.create,
             container=container, type='Document', strict=True, title='Spam')
 
     def test_create_strict(self):
-        """" Test the content creating with the strict parameter. When using strict the given id
-        is enforced when adding content.
+        """" Test the content creating with the strict parameter. When using
+        strict the given id is enforced when adding content.
         """
         container = self.portal
 
         # Create a page with strict option
-        page = content.create(container=container, type='Document', id='strict-document', strict=True)
+        page = content.create(
+            container=container, type='Document', id='strict-document',
+            strict=True)
 
         assert page
         self.assertEqual(page.id, 'strict-document')
@@ -76,8 +91,10 @@ class TestPloneApiContent(unittest.TestCase):
 
         # Try to create another page, this should fail
         self.assertRaises(
-            BadRequest, content.create,
-            container=container, type='Document', id='strict-document', strict=True
+            BadRequest,
+            content.create,
+            container=container, type='Document', id='strict-document',
+            strict=True
         )
 
     def test_create(self):
@@ -85,12 +102,14 @@ class TestPloneApiContent(unittest.TestCase):
 
         container = self.portal
 
-        folder = content.create(container=container, type='Folder', id='test-folder')
+        folder = content.create(
+            container=container, type='Folder', id='test-folder')
         assert folder
         self.assertEqual(folder.id, 'test-folder')
         self.assertEqual(folder.portal_type, 'Folder')
 
-        page = content.create(container=folder, type='Document', id='test-document')
+        page = content.create(
+            container=folder, type='Document', id='test-document')
         assert page
         self.assertEqual(page.id, 'test-document')
         self.assertEqual(page.portal_type, 'Document')
@@ -105,8 +124,8 @@ class TestPloneApiContent(unittest.TestCase):
         self.assertRaises(ValueError, content.get)
 
     def test_get(self):
-        """ Test the getting of content. Create a simple structure with a folder which
-        contains a document
+        """ Test the getting of content. Create a simple structure with
+        a folder which contains a document
         """
 
         site = self.portal
@@ -129,8 +148,11 @@ class TestPloneApiContent(unittest.TestCase):
         self.assertEqual(team, team_by_path)
 
         # Test getting an non-existing item by path and UID
-        self.assertRaises(KeyError, content.get, '/spam/ham')  # restrictedTraverse raises key error
-        self.assertFalse(content.get(UID='bacon'))  # Resolve by UID returns None
+
+        # restrictedTraverse raises key error
+        self.assertRaises(KeyError, content.get, '/spam/ham')
+        # Resolve by UID returns None
+        self.assertFalse(content.get(UID='bacon'))
 
     def test_move_contraints(self):
         """ Test the contrains for moving content """
@@ -153,17 +175,23 @@ class TestPloneApiContent(unittest.TestCase):
         # Move team page to portal root
         content.move(source=team, target=site)
         assert site['team']  # Content has moved to portal root
-        self.assertRaises(KeyError, site['about']['team'])  # No more team in the about folder
+        # No more team in the about folder
+        self.assertRaises(KeyError, site['about']['team'])
 
         # When moving objects we can change the id
         content.move(source=team, target=about, id='our-team')
-        assert content.get('/about/our-team')  # Content has moved to about folder
-        self.assertRaises(KeyError, site['team'])  # No more team in portal root
+        # Content has moved to about folder
+        assert content.get('/about/our-team')
+        # No more team in portal root
+        self.assertRaises(KeyError, site['team'])
 
         # Test the strict parameter when moving content
-        content.move(source=welcome, target=team, id='welcome-to-about', strict=True)
-        assert content.get('/about/welcome-to-about')  # Content has moved to about folder with a new id
-        self.assertRaises(KeyError, site['welcome'])  # No more welcome in portal root
+        content.move(
+            source=welcome, target=team, id='welcome-to-about', strict=True)
+        # Content has moved to about folder with a new id
+        assert content.get('/about/welcome-to-about')
+        # No more welcome in portal root
+        self.assertRaises(KeyError, site['welcome'])
 
     def test_copy_contraints(self):
 
@@ -175,7 +203,6 @@ class TestPloneApiContent(unittest.TestCase):
         self.assertRaises(ValueError, content.copy, source=container)
         # Target is missing an should raise an error
         self.assertRaises(ValueError, content.copy, target=container)
-
 
     def test_delete(self):
         pass

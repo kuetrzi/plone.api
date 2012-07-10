@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Base module for unittesting."""
 
-import unittest2 as unittest
-
 from plone.app.testing import FunctionalTesting
 from plone.app.testing import IntegrationTesting
 from plone.app.testing import PLONE_FIXTURE
@@ -34,7 +32,6 @@ class PloneApiLayer(PloneSandboxLayer):
         # Login as manager
         setRoles(portal, TEST_USER_ID, ['Manager'])
         login(portal, TEST_USER_NAME)
-
 
     def tearDownZope(self, app):
         """Tear down Zope."""

@@ -49,7 +49,8 @@ def create(container=None,
                          '``title`` attribute')
 
     if strict and not id:
-        raise ValueError('You have to provide the ``id`` attribute when using strict')
+        raise ValueError('You have to provide the ``id`` attribute when '
+                         'using strict')
 
     # Create a temporary id if the id is not given
     content_id = strict and id or str(random.randint(0, 99999999))
@@ -72,8 +73,10 @@ def create(container=None,
         chooser = INameChooser(container)
         derived_id = id or title
         new_id = chooser.chooseName(derived_id, content)
-        # kacee: we must do a commit, else the renaming fails because the object isn't in the zodb.
-        # Thus if it is not in zodb, there's nothing to move. We should choose a correct id when
+        # kacee: we must do a commit, else the renaming fails because
+        # the object isn't in the zodb.
+        # Thus if it is not in zodb, there's nothing to move. We should
+        # choose a correct id when
         # the object is created.
         transaction.commit()
         content.aq_parent.manage_renameObject(content_id, new_id)
@@ -95,12 +98,15 @@ def get(path=None, UID=None, *args, **kwargs):
         raise ValueError('Positional arguments are not allowed!')
 
     if path and UID:
-        raise ValueError('When getting an object combining path and UID attribute is not allowed')
+        raise ValueError('When getting an object combining path and UID '
+                         'attribute is not allowed')
 
     if not path and not UID:
-        raise ValueError('When getting an object path or UID attribute is required')
+        raise ValueError('When getting an object path or UID attribute is '
+                         'required')
 
-    # TODO: When no object is found, restrictedTraverse raises a KeyError and uuidToObject returns None.
+    # TODO: When no object is found, restrictedTraverse raises a KeyError
+    # and uuidToObject returns None.
     # Should we raise an error when no object is found using uid resolver?
     if path:
         site = getSite()
@@ -111,7 +117,6 @@ def get(path=None, UID=None, *args, **kwargs):
 
     elif UID:
         return uuidToObject(UID)
-
 
 
 def move(source=None, target=None, id=None, strict=False, *args, **kwargs):
