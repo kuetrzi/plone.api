@@ -1,7 +1,8 @@
-from plone import api
+from Products.CMFPlone.utils import getToolByName
+from zope.app.component.hooks import getSite
 
-import string
 import random
+import string
 
 
 def create(email=None, username=None, password=None, roles=('Member', ),
@@ -34,14 +35,15 @@ def create(email=None, username=None, password=None, roles=('Member', ),
     if not email:
         raise ValueError("You need to pass the new user's email.")
 
-    props = api.get_site().portal_properties
+    site = getSite()
+    props = site.portal_properties
     use_email_as_username = props.site_properties.use_email_as_login
 
     if not use_email_as_username and not username:
         raise ValueError("The site is configured to use username that is not \
             email so you need to pass a username.")
 
-    registration = api.get_tool('portal_registration')
+    registration = getToolByName(site, 'portal_registration')
     user_id = email or username
 
     # Generate a random 8-char password
@@ -76,7 +78,7 @@ def get(username=None, *args):
     if not username:
         raise ValueError
 
-    portal_membership = api.get_tool('portal_membership')
+    portal_membership = getToolByName(getSite(), 'portal_membership')
     return portal_membership.getMemberById(username)
 
 
@@ -87,7 +89,7 @@ def get_current():
     :rtype: MemberData object
     :Example: :ref:`get_current_user_example`
     """
-    portal_membership = api.get_tool('portal_membership')
+    portal_membership = getToolByName(getSite(), 'portal_membership')
     return portal_membership.getAuthenticatedMember()
 
 
@@ -98,7 +100,7 @@ def get_all():
     :rtype: List of MemberData objects
     :Example: :ref:`get_all_users_example`
     """
-    portal_membership = api.get_tool('portal_membership')
+    portal_membership = getToolByName(getSite(), 'portal_membership')
     return portal_membership.listMembers()
 
 
@@ -124,7 +126,7 @@ def delete(username=None, user=None, *args):
     if username and user:
         raise ValueError
 
-    portal_membership = api.get_tool('portal_membership')
+    portal_membership = getToolByName(getSite(), 'portal_membership')
     user_id = username or user.id
     portal_membership.deleteMembers((user_id,))
 
@@ -188,7 +190,8 @@ def get_property(username=None, user=None, name=None, *args):
         raise ValueError
 
     if username:
-        user = api.get_tool('portal_membership').getMemberById(username)
+        portal_membership = getToolByName(getSite(), 'portal_membership')
+        user = portal_membership.getMemberById(username)
 
     return user.getProperty(name)
 
@@ -226,7 +229,8 @@ def set_property(username=None, user=None, name=None, value=None, *args):
         raise ValueError
 
     if username:
-        user = api.get_tool('portal_membership').getMemberById(username)
+        portal_membership = getToolByName(getSite(), 'portal_membership')
+        user = portal_membership.getMemberById(username)
     user.getProperties(name=value)
 
 
@@ -254,9 +258,11 @@ def get_groups(username=None, user=None, *args):
     if username and user:
         raise ValueError
 
+    site = getSite()
+
     if username:
-        user = api.get_tool('portal_membership').getMemberById(username)
-    return api.get_tool('portal_groups').getGroupsForPrincipal(user)
+        user = getToolByName(site, 'portal_membership').getMemberById(username)
+    return getToolByName(site, 'portal_groups').getGroupsForPrincipal(user)
 
 
 def join_group(username=None, user=None, groupname=None, group=None, *args):
@@ -296,7 +302,7 @@ def join_group(username=None, user=None, groupname=None, group=None, *args):
 
     user_id = username or user.id
     group_id = groupname or group.id
-    portal_groups = api.get_tool('portal_groups')
+    portal_groups = getToolByName(getSite(), 'portal_groups')
     portal_groups.addPrincipalToGroup(user_id, group_id)
 
 
@@ -337,7 +343,7 @@ def leave_group(username=None, user=None, groupname=None, group=None, *args):
 
     user_id = username or user.id
     group_id = groupname or group.id
-    portal_groups = api.get_tool('portal_groups')
+    portal_groups = getToolByName(getSite(), 'portal_groups')
     portal_groups.removePrincipalFromGroup(user_id, group_id)
 
 
@@ -348,7 +354,7 @@ def is_anonymous():
     :rtype: bool
     :Example: :ref:`is_anonymous_example`
     """
-    return api.get_tool('portal_membership').isAnonymousUser()
+    return getToolByName(getSite(), 'portal_membership').isAnonymousUser()
 
 
 def has_role(role=None, username=None, user=None, *args):
@@ -413,7 +419,7 @@ def has_permission(permission=None, username=None, user=None,
     if not object:
         raise ValueError
 
-    portal_membership = api.get_tool('portal_membership')
+    portal_membership = getToolByName(object, 'portal_membership')
     if username:
         user = portal_membership.getMemberById(username)
     return portal_membership.checkPermission(permission, object)
