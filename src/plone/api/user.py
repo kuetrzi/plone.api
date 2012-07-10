@@ -45,7 +45,7 @@ def create(email=None, username=None, password=None, roles=('Member', ),
             email so you need to pass a username.")
 
     registration = getToolByName(site, 'portal_registration')
-    user_id = email or username
+    user_id = use_email_as_username and email or username
 
     # Generate a random 8-char password
     if not password:
