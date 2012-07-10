@@ -1,3 +1,4 @@
+""" Module that provides functionality for user manipulation """
 from Products.CMFPlone.utils import getToolByName
 from zope.app.component.hooks import getSite
 

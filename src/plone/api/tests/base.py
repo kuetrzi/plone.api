@@ -20,14 +20,12 @@ class PloneApiLayer(PloneSandboxLayer):
     def setUpZope(self, app, configurationContext):
         """Set up Zope."""
         # Load ZCML
-#        import plone.api
-#        self.loadZCML(package=plone.api)
-#        z2.installProduct(app, 'plone.api')
+        import plone.api
 
     def setUpPloneSite(self, portal):
         """Set up Plone."""
         # Install into Plone site using portal_setup
-#        applyProfile(portal, 'plone.api:default')
+        applyProfile(portal, 'Products.CMFPlone:plone')
 
         # Login as manager
         setRoles(portal, TEST_USER_ID, ['Manager'])
@@ -35,7 +33,6 @@ class PloneApiLayer(PloneSandboxLayer):
 
     def tearDownZope(self, app):
         """Tear down Zope."""
-        z2.uninstallProduct(app, 'plone.api')
 
 
 FIXTURE = PloneApiLayer()

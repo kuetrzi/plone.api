@@ -1,3 +1,5 @@
+""" Module that provides functionality for content manipulation """
+
 from plone.app.uuid.utils import uuidToObject
 from Products.Archetypes.interfaces.base import IBaseObject
 from Products.CMFPlone.utils import getToolByName
@@ -12,7 +14,7 @@ def create(container=None,
            type=None,
            id=None,
            title=None,
-           strict=False,
+           strict=True,
            *args,
            **kwargs):
     """Create a new content item in ZODB.
@@ -48,10 +50,6 @@ def create(container=None,
         raise ValueError('You have to provide either the ``id`` or the '
                          '``title`` attribute')
 
-    if strict and not id:
-        raise ValueError('You have to provide the ``id`` attribute when '
-                         'using strict')
-
     # Create a temporary id if the id is not given
     content_id = strict and id or str(random.randint(0, 99999999))
 
@@ -67,8 +65,7 @@ def create(container=None,
         # rename-after-creation and such
         content.processForm()
 
-    # Set the correct id, based on given id or title
-    if not strict:
+    if not id or (not strict and id):
         # Create a new id from title
         chooser = INameChooser(container)
         derived_id = id or title
@@ -119,7 +116,7 @@ def get(path=None, UID=None, *args, **kwargs):
         return uuidToObject(UID)
 
 
-def move(source=None, target=None, id=None, strict=False, *args, **kwargs):
+def move(source=None, target=None, id=None, strict=True, *args, **kwargs):
     """Move the object to the target container.
 
     :param source: [required] Object that we want to move.
@@ -162,7 +159,7 @@ def move(source=None, target=None, id=None, strict=False, *args, **kwargs):
         target.manage_renameObject(source_id, new_id)
 
 
-def copy(source=None, target=None, id=None, strict=False, *args):
+def copy(source=None, target=None, id=None, strict=True, *args):
     """Copy the object to the target container.
 
     :param source: [required] Object that we want to copy.
@@ -218,7 +215,7 @@ def delete(obj=None, *args):
     if not obj:
         raise ValueError
 
-    raise NotImplementedError
+    obj.aq_parent.manage_delObjects([obj.getId()])
 
 
 def get_state(obj=None, *args):
@@ -236,7 +233,7 @@ def get_state(obj=None, *args):
     if not obj:
         raise ValueError
 
-    workflow = getToolByName(obj, 'portal_workflow')
+    workflow = getToolByName(getSite(), 'portal_workflow')
     return workflow.getInfoFor(obj, 'review_state')
 
 
@@ -256,5 +253,5 @@ def transition(obj=None, transition=None, *args):
     if not obj or not transition:
         raise ValueError
 
-    workflow = getToolByName(obj, 'portal_workflow')
+    workflow = getToolByName(getSite(), 'portal_workflow')
     return workflow.doActionFor(obj, transition)

@@ -1,22 +1,31 @@
 # -*- coding: utf-8 -*-
 """Tests for plone.api content."""
-from plone.api import content
-from plone.api.tests.base import INTEGRATION_TESTING
-from zExceptions import BadRequest
-
 import mock
 import unittest
+import pkg_resources
+from zExceptions import BadRequest
+
+try:
+    pkg_resources.get_distribution('plone.dexterity')
+except pkg_resources.DistributionNotFound:
+    HAS_DEXTERITY = False
+    pass
+else:
+    HAS_DEXTERITY = True
+
+from plone.api import content
+from plone.api.tests.base import INTEGRATION_TESTING
 
 
 class TestPloneApiContent(unittest.TestCase):
-    """Unit test on IWWBSearcher using mocked service results."""
+    """Unit tests for content manipulation using plone.api"""
 
     layer = INTEGRATION_TESTING
 
     def setUp(self):
         """  Create a site structure which we can test against:
         Plone (site root)
-        |-- welcome
+        |-- blog
         |-- about
         |   |-- team
         |   `-- contact
@@ -30,24 +39,24 @@ class TestPloneApiContent(unittest.TestCase):
         self.portal.manage_delObjects(
             [x.id for x in self.portal.getFolderContents()])  # Clean up
 
-        self.welcome = content.create(
-            type='Document', id='welcome', container=self.portal, strict=True)
+        self.blog = content.create(
+            type='Link', id='blog', container=self.portal)
         self.about = content.create(
-            type='Folder', id='about', container=self.portal, strict=True)
+            type='Folder', id='about', container=self.portal)
         self.events = content.create(
-            type='Folder', id='events', container=self.portal, strict=True)
+            type='Folder', id='events', container=self.portal)
 
         self.team = content.create(
-            container=self.about, type='Document', id='team', strict=True)
-        content.create(
-            container=self.about, type='Document', id='contact', strict=True)
+            container=self.about, type='Document', id='team')
+        self.contact = content.create(
+            container=self.about, type='Document', id='contact')
 
-        content.create(
-            container=self.events, type='Event', id='training', strict=True)
-        content.create(
-            container=self.events, type='Event', id='conference', strict=True)
-        content.create(
-            container=self.events, type='Event', id='sprint', strict=True)
+        self.training = content.create(
+            container=self.events, type='Event', id='training')
+        self.conference = content.create(
+            container=self.events, type='Event', id='conference')
+        self.sprint = content.create(
+            container=self.events, type='Event', id='sprint')
 
     def test_create_constraints(self):
         """ Test the constraints when creating content """
@@ -68,54 +77,68 @@ class TestPloneApiContent(unittest.TestCase):
         self.assertRaises(
             ValueError, content.create, container=container, type='Document')
 
-        # Check the contraints for the strict parameter, it required
-        # the id parameter
-        self.assertRaises(
-            ValueError, content.create,
-            container=container, type='Document', strict=True, title='Spam')
+    def test_create_dexterity(self):
+        """ Test create content based on Dexterity """
 
-    def test_create_strict(self):
-        """" Test the content creating with the strict parameter. When using
-        strict the given id is enforced when adding content.
-        """
-        container = self.portal
+        if not HAS_DEXTERITY:
+            return  # bail out
 
-        # Create a page with strict option
-        page = content.create(
-            container=container, type='Document', id='strict-document',
-            strict=True)
+        raise NotImplemented
 
-        assert page
-        self.assertEqual(page.id, 'strict-document')
-        self.assertEqual(page.portal_type, 'Document')
-
-        # Try to create another page, this should fail
-        self.assertRaises(
-            BadRequest,
-            content.create,
-            container=container, type='Document', id='strict-document',
-            strict=True
-        )
-
-    def test_create(self):
-        """ Test creating content """
+    def test_create_archetypes(self):
+        """ Test creating content based on Archetypes """
 
         container = self.portal
 
+        # Create a folder
         folder = content.create(
             container=container, type='Folder', id='test-folder')
         assert folder
         self.assertEqual(folder.id, 'test-folder')
         self.assertEqual(folder.portal_type, 'Folder')
 
+        # Create a document
         page = content.create(
             container=folder, type='Document', id='test-document')
         assert page
         self.assertEqual(page.id, 'test-document')
         self.assertEqual(page.portal_type, 'Document')
 
-    def test_get_contraints(self):
-        """ Test the contraints when content is fetched with get """
+        # Create a document with a title and without an id
+        page = content.create(
+            container=folder, type='Document', title='Test id generated')
+        assert page
+        self.assertEqual(page.id, 'test-id-generated')
+        self.assertEqual(page.Title(), 'Test id generated')
+        self.assertEqual(page.portal_type, 'Document')
+
+        # Try to create another page, this should fail because of strict mode
+        self.assertRaises(
+            BadRequest, content.create,
+            container=folder, type='Document', id='test-document'
+        )
+
+    def test_create_non_strict(self):
+        """" Test the content creating without strict mode. """
+        container = self.portal
+
+        first_page = content.create(
+            container=container, type='Document', id='test-document',
+            strict=False)
+        assert first_page
+        self.assertEqual(first_page.id, 'test-document')
+        self.assertEqual(first_page.portal_type, 'Document')
+
+        # Second page is created with non-conflicting id
+        second_page = content.create(
+            container=container, type='Document', id='test-document',
+            strict=False)
+        assert second_page
+        self.assertEqual(second_page.id, 'test-document-1')
+        self.assertEqual(second_page.portal_type, 'Document')
+
+    def test_get_constraints(self):
+        """ Test the constraints when content is fetched with get """
 
         # Path and UID parameter can not be given together
         self.assertRaises(ValueError, content.get, path='/', UID='dummy')
@@ -128,34 +151,29 @@ class TestPloneApiContent(unittest.TestCase):
         a folder which contains a document
         """
 
-        site = self.portal
-        about, team = self.about, self.team
-
         # Test getting the about folder by path and UID
         about_by_path = content.get('/about')
-        about_by_uid = content.get(UID=about.UID())
-        self.assertEqual(about, about_by_path)
-        self.assertEqual(about, about_by_uid)
+        about_by_uid = content.get(UID=self.about.UID())
+        self.assertEqual(self.about, about_by_path)
+        self.assertEqual(self.about, about_by_uid)
 
         # Test getting the team document by path and UID
         team_by_path = content.get('/about/team')
-        team_by_uid = content.get(UID=team.UID())
-        self.assertEqual(team, team_by_path)
-        self.assertEqual(team, team_by_uid)
+        team_by_uid = content.get(UID=self.team.UID())
+        self.assertEqual(self.team, team_by_path)
+        self.assertEqual(self.team, team_by_uid)
 
         # Test getting the team document by path that has portal id included
-        team_by_path = content.get('/{0}/about/team'.format(site.getId()))
-        self.assertEqual(team, team_by_path)
+        team_by_path = content.get(
+            '/{0}/about/team'.format(self.portal.getId()))
+        self.assertEqual(self.team, team_by_path)
 
         # Test getting an non-existing item by path and UID
-
-        # restrictedTraverse raises key error
         self.assertRaises(KeyError, content.get, '/spam/ham')
-        # Resolve by UID returns None
         self.assertFalse(content.get(UID='bacon'))
 
-    def test_move_contraints(self):
-        """ Test the contrains for moving content """
+    def test_move_constraints(self):
+        """ Test the constraints for moving content """
 
         # When no parameters are given an error is raised
         self.assertRaises(ValueError, content.move)
@@ -169,31 +187,29 @@ class TestPloneApiContent(unittest.TestCase):
     def test_move(self):
         """ Test moving of content """
 
-        site = self.portal
-        welcome, about, team = self.welcome, self.about, self.team
+        container = self.portal
 
         # Move team page to portal root
-        content.move(source=team, target=site)
-        assert site['team']  # Content has moved to portal root
-        # No more team in the about folder
-        self.assertRaises(KeyError, site['about']['team'])
+        content.move(source=self.team, target=container)
+        assert container['team']
+        assert 'team' not in container['about'].keys()
 
         # When moving objects we can change the id
-        content.move(source=team, target=about, id='our-team')
-        # Content has moved to about folder
-        assert content.get('/about/our-team')
-        # No more team in portal root
-        self.assertRaises(KeyError, site['team'])
+        team = container['team']
+        content.move(source=team, target=self.about, id='our-team')
+        assert container['about']['our-team']
+        assert 'team' not in container.keys()
 
-        # Test the strict parameter when moving content
+        # Test with strict parameter disabled when moving content
+        content.create(container=self.about, type='Link', id='link-to-blog')
         content.move(
-            source=welcome, target=team, id='welcome-to-about', strict=True)
-        # Content has moved to about folder with a new id
-        assert content.get('/about/welcome-to-about')
-        # No more welcome in portal root
-        self.assertRaises(KeyError, site['welcome'])
+            source=self.blog, target=self.about, id='link-to-blog',
+            strict=False)
+        assert container['about']['link-to-blog-1']
+        assert 'link-to-blog' not in container.keys()
 
-    def test_copy_contraints(self):
+    def test_copy_constraints(self):
+        """ Test the constraints for moving content """
 
         # When no parameters are given an error is raised
         self.assertRaises(ValueError, content.copy)
@@ -204,11 +220,57 @@ class TestPloneApiContent(unittest.TestCase):
         # Target is missing an should raise an error
         self.assertRaises(ValueError, content.copy, target=container)
 
+    def test_copy(self):
+        """ Test the copying of content """
+
+        container = self.portal
+
+        # Copy team page to portal root
+        content.copy(source=self.team, target=container)
+        assert container['team']  # Content has moved to portal root
+        self.assertRaises(KeyError, container['about']['team'])
+
+        # When moving objects we can change the id
+        content.copy(source=self.team, target=self.about, id='our-team')
+        assert container['about']['our-team']
+        self.assertRaises(KeyError, container['team'])
+
+        # Test the strict parameter disabled when moving content
+        content.create(container=self.about, type='Link', id='link-to-blog')
+
+        content.copy(
+            source=self.blog, target=self.about, id='link-to-blog',
+            strict=False)
+        assert container['about']['link-to-blog-1']
+        self.assertRaises(KeyError, container['blog'])
+
+    def test_delete_constraints(self):
+        """ Test the constraints for deleting content """
+
+        # When no parameters are given an error is raised
+        self.assertRaises(ValueError, content.delete)
+
     def test_delete(self):
-        pass
+        """ Test deleting a content item """
+
+        container = self.portal
+
+        # The content item must be given as parameter
+        self.assertRaises(ValueError, content.delete)
+
+        # Delete the contact page
+        content.delete(self.contact)
+        assert 'contact' not in container['about'].keys()
 
     def test_get_state(self):
-        pass
+        """ Test retrieving the workflow state of a content item """
 
-    def test_transistion(self):
-        pass
+        review_state = content.get_state(obj=self.blog)
+        self.assertEqual(review_state, 'private')
+
+    def test_transition(self):
+        """ Test transitioning the workflow state on a content item"""
+
+        content.transition(obj=self.blog, transition='publish')
+        review_state = content.get_state(obj=self.blog)
+        self.assertEqual(review_state, 'published')
