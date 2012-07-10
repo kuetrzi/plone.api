@@ -90,3 +90,37 @@ class TestPloneApiUser(unittest.TestCase):
             user.getRoles(),
             ['Reviewer', 'Authenticated', 'Editor']
         )
+
+    def test_get_no_username(self):
+        """ Test that exception is raised if no username is given
+        when getting the user
+        """
+        self.assertRaises(
+            ValueError,
+            api.user.get
+        )
+
+    def test_get(self):
+        """ Test getting the user """
+        user = api.user.create(
+            username='chuck',
+            email='chuck@norris.org',
+            password='secret',
+        )
+
+        self.assertEqual(api.user.get('chuck'), user)
+
+    def test_get_current(self):
+        """ Test getting the currently logged-in user """
+        self.assertEqual(api.user.get_current().getUserName(), 'test-user')
+
+    def test_get_all(self):
+        """ Test getting all users """
+        api.user.create(
+            username='chuck',
+            email='chuck@norris.org',
+            password='secret',
+        )
+        users = [user.getUserName() for user in api.user.get_all()]
+
+        self.assertEqual(users, ['chuck', 'test-user'])
