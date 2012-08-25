@@ -105,7 +105,7 @@ class TestPloneApiContent(unittest.TestCase):
         folder = api.content.create(
             container=container, type='Folder', id='test-folder')
         assert folder
-        # Constraint the allowed types 
+        # Constraint the allowed types
         folder.setConstrainTypesMode(1)
         folder.setLocallyAllowedTypes(('News Item',))
         self.assertRaises(
@@ -115,7 +115,7 @@ class TestPloneApiContent(unittest.TestCase):
             type='Document',
             id='test-doc'
         )
-    
+
     @unittest.skipUnless(HAS_DEXTERITY, "Only run when Dexterity is available.")
     def test_create_dexterity(self):
         """ Test create content based on Dexterity """
