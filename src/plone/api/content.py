@@ -6,10 +6,14 @@ from Products.Archetypes.interfaces.base import IBaseObject
 from Products.CMFPlone.utils import getToolByName
 from zope.app.component.hooks import getSite
 from zope.app.container.interfaces import INameChooser
-from zope.component import getMultiAdapter
+from zope.component import getMultiAdapter, getSiteManager
+from zope.interface import Interface, providedBy
 
 import random
 import transaction
+
+from plone.api.exceptions import InvalidParameterError
+from plone.api.exceptions import MissingParameterError
 
 
 def create(container=None,
@@ -260,13 +264,13 @@ def get_view(name=None, context=None, request=None):
     :Example: :ref:`content_get_view_example`
     """
     if not name:
-        raise ValueError
+        raise MissingParameterError("Missing required parameter: name")
 
     if not context:
-        raise ValueError
+        raise MissingParameterError("Missing required parameter: context")
 
     if not request:
-        raise ValueError
+        raise MissingParameterError("Missing required parameter: request")
 
     # It happens sometimes that ACTUAL_URL is not set in tests. To be nice
     # and not throw strange errors, we set it to be the same as URL.
@@ -275,4 +279,16 @@ def get_view(name=None, context=None, request=None):
     if config.dbtab.__module__ == 'plone.testing.z2':
         request['ACTUAL_URL'] = request['URL']
 
-    return getMultiAdapter((context, request), name=name)
+    try:
+        return getMultiAdapter((context, request), name=name)
+    except:
+        # get a list of all views so we can display their names in the error msg
+        sm = getSiteManager()
+        views = sm.adapters.lookupAll(required=(providedBy(context), providedBy(request)),
+                                      provided=Interface)
+        views_names = [view[0] for view in views]
+
+        raise InvalidParameterError(
+            "Cannot find a view with name '%s'. \n"
+            "Available views are:\n"
+            "%s" % (name, '\n'.join(views_names)))
