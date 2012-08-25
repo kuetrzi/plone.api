@@ -320,14 +320,21 @@ class TestPloneApiContent(unittest.TestCase):
     def test_transition(self):
         """ Test transitioning the workflow state on a content item"""
 
-        self.assertRaises(ValueError, api.content.transition)
-        self.assertRaises(ValueError, api.content.transition, obj=mock.Mock())
+        self.assertRaises(api.exceptions.MissingParameterError, api.content.transition)
+        self.assertRaises(api.exceptions.MissingParameterError, api.content.transition, obj=mock.Mock())
         self.assertRaises(
-            ValueError, api.content.transition, transition='publish')
+            api.exceptions.MissingParameterError, api.content.transition, transition='publish')
 
         api.content.transition(obj=self.blog, transition='publish')
         review_state = api.content.get_state(obj=self.blog)
         self.assertEqual(review_state, 'published')
+
+        # This should fail because the transition doesn't exist
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.transition,
+            obj=self.blog,
+            transition='foo')
 
     def test_get_view_constraints(self):
         """ Test the constraints for deleting content """

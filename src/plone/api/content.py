@@ -9,6 +9,7 @@ from zope.app.container.interfaces import INameChooser
 from zope.component import getMultiAdapter, getSiteManager
 from zope.interface import Interface, providedBy
 from Products.CMFCore.interfaces import ISiteRoot
+from Products.CMFCore.WorkflowCore import WorkflowException
 
 import random
 import transaction
@@ -259,10 +260,19 @@ def transition(obj=None, transition=None):
     :Example: :ref:`content_transition_example`
     """
     if not obj or not transition:
-        raise ValueError
+        raise MissingParameterError('You have to provide the ``obj`` and the '
+                                    '``transition`` parameters')
 
     workflow = getToolByName(getSite(), 'portal_workflow')
-    workflow.doActionFor(obj, transition)
+    try:
+        workflow.doActionFor(obj, transition)
+    except WorkflowException:
+        transitions = [action['id'] for action in workflow.listActions(object=obj)]
+
+        raise InvalidParameterError(
+            "Invalid transition '%s'. \n"
+            "Valid transitions are:\n"
+            "%s" % (transition, '\n'.join(transitions)))
 
 
 def get_view(name=None, context=None, request=None):
