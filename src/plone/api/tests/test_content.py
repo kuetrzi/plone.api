@@ -3,7 +3,6 @@
 import mock
 import unittest
 import pkg_resources
-from zExceptions import BadRequest
 from Acquisition import aq_base
 
 try:
@@ -63,24 +62,60 @@ class TestPloneApiContent(unittest.TestCase):
         """ Test the constraints when creating content """
 
         # This will definitely fail
-        self.assertRaises(ValueError, api.content.create)
+        self.assertRaises(api.exceptions.MissingParameterError, api.content.create)
 
         # Check the contraints for the type container
         self.assertRaises(
-            ValueError, api.content.create, type='Document', id='test-doc')
+            api.exceptions.MissingParameterError, api.content.create, type='Document', id='test-doc')
 
         # Check the contraints for the type parameter
         container = mock.Mock()
         self.assertRaises(
-            ValueError, api.content.create, container=container, id='test-doc')
+            api.exceptions.MissingParameterError, api.content.create, container=container, id='test-doc')
 
         # Check the contraints for id and title parameters
         self.assertRaises(
-            ValueError,
+            api.exceptions.MissingParameterError,
             api.content.create,
             container=container, type='Document'
         )
 
+        # Check the contraints for allowed types in the container
+        container = self.events
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.create,
+            container=container,
+            type='foo',
+            id='test-foo'
+        )
+
+        # Check the contraints for allowed types in the container if the container is the portal
+        container = self.portal
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.create,
+            container=container,
+            type='foo',
+            id='test-foo'
+        )
+
+        # Check the contraints for allowed types in the container
+        # Create a folder
+        folder = api.content.create(
+            container=container, type='Folder', id='test-folder')
+        assert folder
+        # Constraint the allowed types 
+        folder.setConstrainTypesMode(1)
+        folder.setLocallyAllowedTypes(('News Item',))
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.create,
+            container=folder,
+            type='Document',
+            id='test-doc'
+        )
+    
     @unittest.skipUnless(HAS_DEXTERITY, "Only run when Dexterity is available.")
     def test_create_dexterity(self):
         """ Test create content based on Dexterity """
@@ -115,7 +150,7 @@ class TestPloneApiContent(unittest.TestCase):
 
         # Try to create another page, this should fail because of strict mode
         self.assertRaises(
-            BadRequest, api.content.create,
+            api.exceptions.InvalidParameterError, api.content.create,
             container=folder, type='Document', id='test-document'
         )
 

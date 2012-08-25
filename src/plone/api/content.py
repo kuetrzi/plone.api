@@ -8,6 +8,7 @@ from zope.app.component.hooks import getSite
 from zope.app.container.interfaces import INameChooser
 from zope.component import getMultiAdapter, getSiteManager
 from zope.interface import Interface, providedBy
+from Products.CMFCore.interfaces import ISiteRoot
 
 import random
 import transaction
@@ -46,14 +47,14 @@ def create(container=None,
     :Example: :ref:`content_create_example`
     """
     if not container:
-        raise ValueError('The ``container`` attribute is required.')
+        raise MissingParameterError("Missing required parameter: container")
 
     if not type:
-        raise ValueError('The ``type`` attribute is required.')
+        raise MissingParameterError("Missing required parameter: type")
 
     if not id and not title:
-        raise ValueError('You have to provide either the ``id`` or the '
-                         '``title`` attribute')
+        raise MissingParameterError('You have to provide either the ``id`` or the '
+                                    '``title`` parameter')
 
     # Create a temporary id if the id is not given
     content_id = strict and id or str(random.randint(0, 99999999))
@@ -61,7 +62,19 @@ def create(container=None,
     if title:
         kwargs['title'] = title
 
-    container.invokeFactory(type, content_id, **kwargs)
+    try:
+        container.invokeFactory(type, content_id, **kwargs)
+    except:
+        if ISiteRoot.providedBy(container):
+            types = [type.id for type in container.allowedContentTypes()]
+        else:
+            types = container.getLocallyAllowedTypes()
+
+        raise InvalidParameterError(
+            "Cannot add a '%s' object to the container. \n"
+            "Allowed types are:\n"
+            "%s" % (type, '\n'.join(types)))
+
     content = container[content_id]
 
     # Archetypes specific code
