@@ -336,36 +336,33 @@ class TestPloneApiUser(unittest.TestCase):
                 permission=ModifyPortalContent, object=self.portal)
         )
 
-    def test_grant_role_constraints(self):
+    def test_grant_roles_constraints(self):
         """Test grant role method constraints"""
-        self.assertRaises(ValueError, api.user.grant_role)
+        self.assertRaises(ValueError, api.user.grant_roles)
         # Must supply role
         self.assertRaises(
             ValueError,
-            api.user.grant_role,
+            api.user.grant_roles,
             username='chuck',
         )
         # username and user are mutually exclusive
         self.assertRaises(
             ValueError,
-            api.user.grant_role,
-            role='foo',
+            api.user.grant_roles,
+            roles=['foo'],
             username='chuck',
             user=mock.Mock()
         )
 
-    def test_grant_role_specific_user(self):
+    def test_grant_roles_specific_user(self):
         user = api.user.create(
             username='chuck',
             email='chuck@norris.org',
             password='secret',
         )
+        self.assertFalse('Editor' in user.getRolesInContext(self.portal))
+        api.user.grant_roles(user=user, roles=['Editor'])
+        self.assertTrue('Editor' in user.getRolesInContext(self.portal))
 
-        #setRoles(self.portal, TEST_USER_ID, ['Manager'])
-
-        self.assertFalse(api.user.has_role(role='Editor'))
-        api.user.grant_role(user=user, role='Editor')
-        self.assertTrue(api.user.has_role(role='Editor'))
-
-    def test_grant_role_current_user(self):
+    def test_grant_roles_current_user(self):
         pass

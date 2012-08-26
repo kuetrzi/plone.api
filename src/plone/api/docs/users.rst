@@ -273,25 +273,29 @@ to get groups for.
 
 .. _add_user_to_group_example:
 
-Grant a role
-------------
+Grant roles
+-----------
 
-Use ``grant_role``, passing in either the username or the user object you want
-to grant the role to and the role name you want to grant. If pass a context
-object, you will be granting the role in the given context.
+The method ``grant_roles`` takes a list of roles and assigns these
+roles to a user in a context. The method can receive either the
+username or the user. If no username nor user is provided, the method
+will use the authenticated member. The roles can be granted in an
+explicit object. If the object is not passed, the roles will be
+granted in the site root.
 
 .. invisible-code-block:: python
 
-    api.user.create(username='joao', email='joao@joao.com')
+    user = api.user.create(username='joao', email='joao@joao.com')
 
 .. code-block:: python
 
     from plone import api
-    api.user.grant_role(username='joao', role='Reviewer')
+    api.user.grant_roles(username='joao', roles=['Reviewer'])
 
 .. invisible-code-block:: python
 
-    self.assertTrue(api.user.has_role(username='joao', role='Reviewer'))
-    self.failIf(api.user.has_role(username='joao', role='Manager'))
+    portal = api.portal.get()
+    self.assertTrue('Reviewer' in user.getRolesInContext(portal))
+    self.failIf('Manager' in user.getRolesInContext(portal))
 
-.. _grant_role_to_user_example:
+.. _grant_roles_to_user_example:

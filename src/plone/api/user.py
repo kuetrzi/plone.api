@@ -1,7 +1,5 @@
 """ Module that provides functionality for user manipulation """
 from AccessControl.ImplPython import rolesForPermissionOn
-from AccessControl.SecurityManagement import newSecurityManager
-from AccessControl.SecurityManagement import getSecurityManager
 from Products.CMFPlone.utils import getToolByName
 from zope.app.component.hooks import getSite
 
@@ -241,56 +239,40 @@ def has_permission(permission=None, username=None, user=None,
         return user.allowed(object, roles)
 
 
-def grant_role(role=None, username=None, user=None, context=None):
-    """Grant a role for a user in context.
+def grant_roles(roles=None, username=None, user=None, obj=None):
+    """Grant roles for a user in object.
 
     Arguments ``username`` and ``user`` are mutually exclusive. You can either
     set one or the other, but not both. If no ``username` or ``user`` are
-    provided, grant the role for the currently logged-in user.
+    provided, grant the roles for the currently logged-in user.
 
-    :param role: [required] Role to grant
-    :type role: string
-    :param username: Username of the user that we are granting the role to
+    :param roles: [required] Roles to grant
+    :type roles: list
+    :param username: Username of the user that we are granting the roles to
     :type username: string
-    :param user: User that we are grating the role to
+    :param user: User that we are grating the roles to
     :type user: MemberData object
-    :param context: Context in which you will grant the role
-    :type context: Content object
-    :Example: :ref:`grant_role_to_user_example`
+    :param obj: Object in which you will grant the roles
+    :type obj: Content object
+    :Example: :ref:`grant_roles_to_user_example`
     """
-    #import pdb; pdb.set_trace()
-    if not role:
+
+    if not roles:
         raise ValueError
 
     if username and user:
         raise ValueError
 
-    portal_membership = getToolByName(getSite(), 'portal_membership')
+    if obj is None:
+        obj = getSite()
+
+    portal_membership = getToolByName(obj, 'portal_membership')
 
     if username:
         user = portal_membership.getMemberById(username)
     elif not user:
         user = portal_membership.getAuthenticatedMember()
+    user = user.getUser()
 
-    roles = user.getRoles()
-
-    # Nothing to do if the user already has the role
-    if role in roles:
-        return
-
-    roles.append(role)
-
-    acl_users = getToolByName(getSite(), 'acl_users')
-    # Second parameter is for the password, None means we don't change it
-    
-    acl_users.userFolderEditUser(
-        user.getId(),
-        None,
-        roles,
-        user.getDomains(),
-    )
-
-    #user = acl_users.getUser(user.getId())
-    #if not hasattr(user, 'aq_base'):
-        #user = user.__of__(acl_users)
-    #newSecurityManager(None, user)
+    roles = user.getRolesInContext(obj) + roles
+    obj.manage_setLocalRoles(user.getId(), roles)
