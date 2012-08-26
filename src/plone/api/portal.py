@@ -1,6 +1,7 @@
 from email.utils import formataddr, parseaddr
 
 from Products.CMFPlone.utils import getToolByName
+from Products.CMFCore.interfaces import IContentish
 from Products.statusmessages.interfaces import IStatusMessage
 from zope.app.component.hooks import getSite
 from zope.component import getMultiAdapter
@@ -48,9 +49,11 @@ def get_tool(name=None):
         portal = getSite()
         tools = []
         for id in portal.objectIds():
-            if id.startswith('portal_'):
+            obj = portal[id]
+            if not IContentish.providedBy(obj):
                 tools.append(id)
 
+        tools.sort()
         raise InvalidParameterError(
             "Cannot find a tool with name '%s'. \n"
             "Available tools are:\n"
