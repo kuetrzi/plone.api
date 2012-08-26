@@ -3,7 +3,6 @@
 import mock
 import unittest
 import pkg_resources
-from zExceptions import BadRequest
 from Acquisition import aq_base
 
 try:
@@ -63,22 +62,58 @@ class TestPloneApiContent(unittest.TestCase):
         """ Test the constraints when creating content """
 
         # This will definitely fail
-        self.assertRaises(ValueError, api.content.create)
+        self.assertRaises(api.exceptions.MissingParameterError, api.content.create)
 
         # Check the contraints for the type container
         self.assertRaises(
-            ValueError, api.content.create, type='Document', id='test-doc')
+            api.exceptions.MissingParameterError, api.content.create, type='Document', id='test-doc')
 
         # Check the contraints for the type parameter
         container = mock.Mock()
         self.assertRaises(
-            ValueError, api.content.create, container=container, id='test-doc')
+            api.exceptions.MissingParameterError, api.content.create, container=container, id='test-doc')
 
         # Check the contraints for id and title parameters
         self.assertRaises(
-            ValueError,
+            api.exceptions.MissingParameterError,
             api.content.create,
             container=container, type='Document'
+        )
+
+        # Check the contraints for allowed types in the container
+        container = self.events
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.create,
+            container=container,
+            type='foo',
+            id='test-foo'
+        )
+
+        # Check the contraints for allowed types in the container if the container is the portal
+        container = self.portal
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.create,
+            container=container,
+            type='foo',
+            id='test-foo'
+        )
+
+        # Check the contraints for allowed types in the container
+        # Create a folder
+        folder = api.content.create(
+            container=container, type='Folder', id='test-folder')
+        assert folder
+        # Constraint the allowed types
+        folder.setConstrainTypesMode(1)
+        folder.setLocallyAllowedTypes(('News Item',))
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.create,
+            container=folder,
+            type='Document',
+            id='test-doc'
         )
 
     @unittest.skipUnless(HAS_DEXTERITY, "Only run when Dexterity is available.")
@@ -115,7 +150,7 @@ class TestPloneApiContent(unittest.TestCase):
 
         # Try to create another page, this should fail because of strict mode
         self.assertRaises(
-            BadRequest, api.content.create,
+            api.exceptions.InvalidParameterError, api.content.create,
             container=folder, type='Document', id='test-document'
         )
 
@@ -285,25 +320,32 @@ class TestPloneApiContent(unittest.TestCase):
     def test_transition(self):
         """ Test transitioning the workflow state on a content item"""
 
-        self.assertRaises(ValueError, api.content.transition)
-        self.assertRaises(ValueError, api.content.transition, obj=mock.Mock())
+        self.assertRaises(api.exceptions.MissingParameterError, api.content.transition)
+        self.assertRaises(api.exceptions.MissingParameterError, api.content.transition, obj=mock.Mock())
         self.assertRaises(
-            ValueError, api.content.transition, transition='publish')
+            api.exceptions.MissingParameterError, api.content.transition, transition='publish')
 
         api.content.transition(obj=self.blog, transition='publish')
         review_state = api.content.get_state(obj=self.blog)
         self.assertEqual(review_state, 'published')
+
+        # This should fail because the transition doesn't exist
+        self.assertRaises(
+            api.exceptions.InvalidParameterError,
+            api.content.transition,
+            obj=self.blog,
+            transition='foo')
 
     def test_get_view_constraints(self):
         """ Test the constraints for deleting content """
         request = self.layer['request']
 
         # When no parameters are given an error is raised
-        self.assertRaises(ValueError, api.content.get_view)
+        self.assertRaises(api.exceptions.MissingParameterError, api.content.get_view)
 
         # name is required
         self.assertRaises(
-            ValueError,
+            api.exceptions.MissingParameterError,
             api.content.get_view,
             context=self.blog,
             request=request
@@ -311,7 +353,7 @@ class TestPloneApiContent(unittest.TestCase):
 
         # context is required
         self.assertRaises(
-            ValueError,
+            api.exceptions.MissingParameterError,
             api.content.get_view,
             name='plone',
             request=request
@@ -319,7 +361,7 @@ class TestPloneApiContent(unittest.TestCase):
 
         # request is required
         self.assertRaises(
-            ValueError,
+            api.exceptions.MissingParameterError,
             api.content.get_view,
             name='plone',
             context=self.blog
@@ -335,7 +377,7 @@ class TestPloneApiContent(unittest.TestCase):
             request=request
         )
         self.assertEqual(aq_base(view.context), aq_base(self.blog))
-        self.assertEqual(view.__name__, u'plone')
+        self.assertEqual(view.__name__, 'plone')
         self.assertTrue(hasattr(view, 'getIcon'))
         self.assertEqual(request['ACTUAL_URL'], 'http://nohost')
 
@@ -345,5 +387,177 @@ class TestPloneApiContent(unittest.TestCase):
             context=self.blog,
             request=request
         )
-        self.assertEqual(view.__name__, u'plone_context_state')
+        self.assertEqual(view.__name__, 'plone_context_state')
         self.assertEqual(aq_base(view.canonical_object()), aq_base(self.blog))
+
+    def test_get_view_view_not_found(self):
+        """Test that error msg lists available views if a view is not found."""
+        request = self.layer['request']
+
+        with self.assertRaises(api.exceptions.InvalidParameterError) as cm:
+            api.content.get_view(name='foo',
+                                 context=self.blog,
+                                 request=request)
+
+        self.maxDiff = None  # to see assert diff
+        self.assertMultiLineEqual(
+            cm.exception.message,
+            "Cannot find a view with name 'foo'. \n"
+            "Available views are:\n"
+            '\n'
+            'zptviews.html\n'
+            'p.a.jqt.testPage\n'
+            'cutObject\n'
+            'display_query_results\n'
+            'images\n'
+            'tinymce-save\n'
+            'at_textarea_widget\n'
+            'plone_nextprevious_view\n'
+            'plone_contentrules_info\n'
+            'at_base_edit_view\n'
+            'default_page\n'
+            'plone.contentmenu.display\n'
+            'kukittestsuite\n'
+            'skin\n'
+            'changeViewTemplate\n'
+            'link_renderer\n'
+            'archetypes-querywidget-relativedatewidget\n'
+            'portal_tabs_view\n'
+            'convert-legacy-portlets\n'
+            'reviewlist_update_table\n'
+            'kss_view\n'
+            'resolveuid_and_caption\n'
+            'refbrowser_querycatalog\n'
+            'changeWorkflowState\n'
+            'replaceMacro\n'
+            'manage_interfaces\n'
+            'tinymce-jsonconfiguration\n'
+            'blob-maintenance\n'
+            'refreshPortlet\n'
+            'archetypes-querywidget-multipleselectionwidget\n'
+            'resolveuid\n'
+            'pas_member\n'
+            'at_lifecycle_view\n'
+            'navtree_builder_view\n'
+            'calendar_widget\n'
+            'querybuilderjsonconfig\n'
+            'kss_devel_mode\n'
+            'contenthistory\n'
+            'resourceregistries_styles_view\n'
+            'plone_javascript_variables.js\n'
+            'pas_search\n'
+            'sharing\n'
+            'inlineDeletePortlet\n'
+            'manage-viewlets\n'
+            'historyview\n'
+            'replaceRulesTable\n'
+            'plone_context_state\n'
+            'plone_tools\n'
+            'authenticator\n'
+            'widget_macros\n'
+            'edit-markers.html\n'
+            'kssValidateField\n'
+            'archetypes-querywidget-relativepathwidget\n'
+            'at_selection_widget\n'
+            'sitemap_view\n'
+            'resourceregistries_scripts_view\n'
+            'resourceregistries_kss_view\n'
+            'contextportlets\n'
+            'kss_field_decorator_view\n'
+            'querybuilderresults\n'
+            'manage-portlets\n'
+            'resource\n'
+            'migrate-btrees\n'
+            'tinymce-upload\n'
+            'addform_macros\n'
+            'uuid\n'
+            'plone_redirector_view\n'
+            'date_components_support\n'
+            'replaceInnerByMacro\n'
+            'sitemap_builder_view\n'
+            'archetypes-querywidget-stringwidget\n'
+            'plone.contentmenu.actions\n'
+            'form_macros\n'
+            'plone_layout\n'
+            'base-pageform.html\n'
+            'folder_contents\n'
+            'standard_macros\n'
+            'view\n'
+            'tinymce-jsonlinkablesearch\n'
+            'savekupu\n'
+            'replaceByMacro\n'
+            'tinymce-setDescription\n'
+            'contenthistorypopup\n'
+            'tinymce-jsondetails\n'
+            'datepickerconfig\n'
+            'kss_formlib_inline_edit_cancel\n'
+            'plone.contentmenu.factories\n'
+            'set-portlet-blacklist-status\n'
+            'kss_formlib_inline_validation\n'
+            'plone_lock_operations\n'
+            'calendar_day.html\n'
+            'archetypes-querywidget-emptywidget\n'
+            'plone.contentmenu.workflow\n'
+            'ploneform-macros\n'
+            'kss_z3cform_inline_validation\n'
+            'sunburstview\n'
+            'p.a.jqt.testForm\n'
+            'refbrowser_popup\n'
+            'kss_javascript\n'
+            'replaceField\n'
+            'replaceContentRegion\n'
+            'kss_formlib_inline_edit_save\n'
+            'tinymce-jsonimagesearch\n'
+            'etc\n'
+            'customizezpt\n'
+            'plone.outputfilters_captioned_image\n'
+            'saveField\n'
+            'tinymce-jsonlinkablefolderlisting\n'
+            'foldercontents_update_table\n'
+            'refbrowserhelper\n'
+            'querybuildernumberofresults\n'
+            'base-subpageform.html\n'
+            'wickedaddmenu\n'
+            'querybuilder_html_results\n'
+            'plone_portal_state\n'
+            'contentmenurefresh\n'
+            'refreshCalendar\n'
+            'folder_factories\n'
+            'archetypes-querywidget-daterangewidget\n'
+            'tinymce-jsonimagefolderlisting\n'
+            'updateSharingInfo\n'
+            'updateLockInfo\n'
+            'checkDocument\n'
+            'manage-portlets-macros\n'
+            'inlineMovePortletDown\n'
+            'togglePortletVisibility\n'
+            'five_template\n'
+            'calendar_box_view\n'
+            'plone_lock_info\n'
+            'wickedadd\n'
+            'get_macros\n'
+            'pas_info\n'
+            'candiff\n'
+            'replaceWithView\n'
+            'plone_interface_info\n'
+            'breadcrumbs_view\n'
+            'archetypes-querywidget-datewidget\n'
+            'search\n'
+            'content_anchors\n'
+            'inlineMovePortletUp\n'
+            'passwordreset_view\n'
+            'kssValidateForm\n'
+            'full_review_list\n'
+            'absolute_url\n'
+            'adapter\n'
+            'customizezpt.html\n'
+            'archetypes-querywidget-referencewidget\n'
+            'conversation\n'
+            'plone\n'
+            'archetypes-querywidget-removecriterialink\n'
+            'redirect-to-uuid\n'
+            'view_get_menu\n'
+            'history\n'
+            'copyObject\n'
+            'kss_formlib_inline_edit_begin'
+        )
