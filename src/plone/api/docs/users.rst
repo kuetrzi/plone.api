@@ -272,3 +272,26 @@ to get groups for.
     assert 'Reviewers' in groups
 
 .. _add_user_to_group_example:
+
+Grant a role
+------------
+
+Use ``grant_role``, passing in either the username or the user object you want
+to grant the role to and the role name you want to grant. If pass a context
+object, you will be granting the role in the given context.
+
+.. invisible-code-block:: python
+
+    api.user.create(username='joao', email='joao@joao.com')
+
+.. code-block:: python
+
+    from plone import api
+    api.user.grant_role(username='joao', role='Reviewer')
+
+.. invisible-code-block:: python
+
+    self.assertTrue(api.user.has_role(username='joao', role='Reviewer'))
+    self.failIf(api.user.has_role(username='joao', role='Manager'))
+
+.. _grant_role_to_user_example:

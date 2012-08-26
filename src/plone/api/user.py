@@ -1,5 +1,7 @@
 """ Module that provides functionality for user manipulation """
 from AccessControl.ImplPython import rolesForPermissionOn
+from AccessControl.SecurityManagement import newSecurityManager
+from AccessControl.SecurityManagement import getSecurityManager
 from Products.CMFPlone.utils import getToolByName
 from zope.app.component.hooks import getSite
 
@@ -237,3 +239,58 @@ def has_permission(permission=None, username=None, user=None,
     else:
         roles = rolesForPermissionOn(permission, object)
         return user.allowed(object, roles)
+
+
+def grant_role(role=None, username=None, user=None, context=None):
+    """Grant a role for a user in context.
+
+    Arguments ``username`` and ``user`` are mutually exclusive. You can either
+    set one or the other, but not both. If no ``username` or ``user`` are
+    provided, grant the role for the currently logged-in user.
+
+    :param role: [required] Role to grant
+    :type role: string
+    :param username: Username of the user that we are granting the role to
+    :type username: string
+    :param user: User that we are grating the role to
+    :type user: MemberData object
+    :param context: Context in which you will grant the role
+    :type context: Content object
+    :Example: :ref:`grant_role_to_user_example`
+    """
+    #import pdb; pdb.set_trace()
+    if not role:
+        raise ValueError
+
+    if username and user:
+        raise ValueError
+
+    portal_membership = getToolByName(getSite(), 'portal_membership')
+
+    if username:
+        user = portal_membership.getMemberById(username)
+    elif not user:
+        user = portal_membership.getAuthenticatedMember()
+
+    roles = user.getRoles()
+
+    # Nothing to do if the user already has the role
+    if role in roles:
+        return
+
+    roles.append(role)
+
+    acl_users = getToolByName(getSite(), 'acl_users')
+    # Second parameter is for the password, None means we don't change it
+    
+    acl_users.userFolderEditUser(
+        user.getId(),
+        None,
+        roles,
+        user.getDomains(),
+    )
+
+    #user = acl_users.getUser(user.getId())
+    #if not hasattr(user, 'aq_base'):
+        #user = user.__of__(acl_users)
+    #newSecurityManager(None, user)
