@@ -12,17 +12,18 @@ import unittest2 as unittest
 
 
 class TestPloneApiUser(unittest.TestCase):
-    """Test plone.api.user"""
+    """Test plone.api.user."""
 
     layer = INTEGRATION_TESTING
 
     def setUp(self):
+        """Shared test environment set-up, ran before every test."""
         self.portal = self.layer['portal']
         self.portal_membership = getToolByName(
             self.portal, 'portal_membership')
 
     def test_create_no_email(self):
-        """ Test that exception is raised if no email is given """
+        """Test that exception is raised if no email is given."""
 
         self.portal.portal_properties.site_properties.use_email_as_login = True
 
@@ -33,7 +34,7 @@ class TestPloneApiUser(unittest.TestCase):
         )
 
     def test_create_email_in_properties(self):
-        """ Test that email is parsed from the properties """
+        """Test that email is parsed from the properties."""
         user = api.user.create(
             username='chuck',
             password='secret',
@@ -43,7 +44,7 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertEquals(user.getProperty('email'), 'chuck@norris.org')
 
     def test_create_no_username(self):
-        """ Test create if no username is provided """
+        """Test create if no username is provided."""
 
         # If there is no username, email will be used instead
         properties = self.portal.portal_properties.site_properties
@@ -67,7 +68,7 @@ class TestPloneApiUser(unittest.TestCase):
         )
 
     def test_create_with_username(self):
-        """ Test if the correct username if used """
+        """Test if the correct username if used."""
         properties = self.portal.portal_properties.site_properties
         properties.manage_changeProperties(use_email_as_login=True)
 
@@ -89,7 +90,7 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertEquals(user.getUserName(), 'chuck')
 
     def test_create_default_roles(self):
-        """ Test the default role is set to member """
+        """Test the default role is set to member."""
         # if create is given no roles, member is the default
         user = api.user.create(
             username='chuck',
@@ -102,9 +103,7 @@ class TestPloneApiUser(unittest.TestCase):
         )
 
     def test_create_specified_roles(self):
-        """
-        Test specific roles are set correctly
-        """
+        """Test specific roles are set correctly."""
         user = api.user.create(
             username='chuck',
             email='chuck@norris.org',
@@ -117,9 +116,7 @@ class TestPloneApiUser(unittest.TestCase):
         )
 
     def test_create_no_roles(self):
-        """
-        Test that passing an empty list give a user with no member role
-        """
+        """Test that passing an empty list give a user with no member role."""
         user = api.user.create(
             username='chuck',
             email='chuck@norris.org',
@@ -132,8 +129,9 @@ class TestPloneApiUser(unittest.TestCase):
         )
 
     def test_get_constraints(self):
-        """ Test that exception is raised if no username is given
-        when getting the user
+        """Test that exception is raised if no username is given when getting
+        the user.
+
         """
         self.assertRaises(
             ValueError,
@@ -141,7 +139,7 @@ class TestPloneApiUser(unittest.TestCase):
         )
 
     def test_get(self):
-        """ Test getting the user """
+        """Test getting the user."""
         user = api.user.create(
             username='chuck',
             email='chuck@norris.org',
@@ -151,11 +149,11 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertEqual(api.user.get('chuck'), user)
 
     def test_get_current(self):
-        """ Test getting the currently logged-in user """
+        """Test getting the currently logged-in user."""
         self.assertEqual(api.user.get_current().getUserName(), TEST_USER_NAME)
 
     def test_get_all_users(self):
-        """ Test getting all users """
+        """Test getting all users."""
         api.user.create(
             username='chuck',
             email='chuck@norris.org',
@@ -166,7 +164,7 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertEqual(users, ['chuck', TEST_USER_NAME])
 
     def test_get_groups_users(self):
-        """ Test getting all users of a certain group """
+        """Test getting all users of a certain group."""
         api.user.create(
             username='chuck',
             email='chuck@norris.org',
@@ -181,7 +179,7 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertEqual(usernames, ['chuck'])
 
     def test_delete_no_username(self):
-        """ Test deleting of a member with email login"""
+        """Test deleting of a member with email login."""
 
         self.portal.portal_properties.site_properties.use_email_as_login = True
 
@@ -197,7 +195,7 @@ class TestPloneApiUser(unittest.TestCase):
         api.user.delete(user=user)
 
     def test_delete_username(self):
-        """ test whether the user has been deleted """
+        """test whether the user has been deleted."""
 
         api.user.create(username='unwanted', password='secret',
                         email='unwanted@example.org')
@@ -208,14 +206,14 @@ class TestPloneApiUser(unittest.TestCase):
         api.user.delete(user=user)
 
     def test_is_anonymous(self):
-        """ Test anonymous access """
+        """Test anonymous access."""
 
         self.assertEqual(api.user.is_anonymous(), False)
         logout()
         self.assertEqual(api.user.is_anonymous(), True)
 
     def test_get_roles(self):
-        """ Test get roles """
+        """Test get roles."""
 
         ROLES = ['Reviewer', 'Editor']
         user = api.user.create(
@@ -235,7 +233,7 @@ class TestPloneApiUser(unittest.TestCase):
             user=user)
 
     def test_grant_roles(self):
-        """ Test grant roles """
+        """Test grant roles."""
 
         user = api.user.create(
             username='chuck',
@@ -275,7 +273,7 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertTrue(ROLES == set(api.user.get_roles(user=user)))
 
     def test_revoke_roles(self):
-        """ Test revoke roles """
+        """Test revoke roles."""
 
         user = api.user.create(
             username='chuck',
@@ -315,7 +313,7 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertTrue(ROLES == set(api.user.get_roles(user=user)))
 
     def test_grant_roles_in_context(self):
-        """ Test grant roles """
+        """Test grant roles."""
 
         user = api.user.create(
             username='chuck',
@@ -346,7 +344,7 @@ class TestPloneApiUser(unittest.TestCase):
         self.assertTrue(ROLES == set(api.user.get_roles(user=user, obj=document)))
 
     def test_revoke_roles_in_context(self):
-        """ Test revoke roles """
+        """Test revoke roles."""
 
         user = api.user.create(
             username='chuck',

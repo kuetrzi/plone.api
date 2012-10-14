@@ -16,12 +16,14 @@ from zope.globalrequest import getRequest
 
 
 def get():
-    """Get the Plone portal object out of thin air without importing fancy
-    Interfaces and doing multi adapter lookups.
+    """Get the Plone portal object out of thin air.
+
+    Without the need to import fancy Interfaces and doing multi adapter lookups.
 
     :returns: Plone portal object
     :rtype: Portal object
     :Example: :ref:`portal_get_example`
+
     """
     portal = getSite()
     if portal:
@@ -34,8 +36,8 @@ def get():
 
 def get_navigation_root(context=None):
     """Get the navigation root object for the context.
-    This traverses the path up and returns the nearest navigation root.
 
+    This traverses the path up and returns the nearest navigation root.
     Useful for multi-lingual installations and sites with subsites.
 
     :param context: [required] Context on which to get the navigation root.
@@ -43,6 +45,7 @@ def get_navigation_root(context=None):
     :returns: Navigation Root
     :rtype: Portal object
     :Example: :ref:`portal_get_navigation_root_example`
+
     """
     if not context:
         raise ValueError("Missing required object: context")
@@ -60,6 +63,7 @@ def get_tool(name=None):
         :class:`~plone.api.exc.MissingParameterError`,
         :class:`~plone.api.exc.InvalidParameterError`
     :Example: :ref:`portal_get_tool_example`
+
     """
     if not name:
         raise MissingParameterError("Missing required parameter: name")
@@ -96,6 +100,7 @@ def send_email(sender=None, recipient=None, subject=None, body=None):
     :raises:
         ValueError
     :Example: :ref:`portal_send_email_example`
+
     """
     if not recipient or not subject or not body:
         raise ValueError
@@ -154,6 +159,7 @@ def get_localized_time(datetime=None, long_format=False, time_only=False):
     :raises:
         ValueError
     :Example: :ref:`portal_get_localized_time_example`
+
     """
     if not datetime:
         raise ValueError
@@ -176,6 +182,7 @@ def show_message(message=None, request=None, type='info'):
     :raises:
         ValueError
     :Example: :ref:`portal_show_message_example`
+
     """
     if not message:
         raise ValueError
@@ -187,10 +194,12 @@ def show_message(message=None, request=None, type='info'):
 
 
 def get_registry_record():
-    """Not yet implemented. Easy access to the ``plone.app.registry`` configuration records.
+    """Not yet implemented. Easy access to the ``plone.app.registry``
+    configuration records.
 
     :returns: Registry record
     :rtype: plone.app.registry registry record
     :Example: :ref:`portal_get_registry_record_example`
+
     """
     raise NotImplementedError
