@@ -223,7 +223,7 @@ class TestPloneApiPortal(unittest.TestCase):
         self.assertRaises(ValueError, portal.get_localized_time)
 
     def test_get_localized_time(self):
-        """TODO: write docstring."""
+        """Test getting the localized time."""
         result = portal.get_localized_time(
             datetime=DateTime(1999, 12, 31, 23, 59),
             long_format=True,
