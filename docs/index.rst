@@ -57,6 +57,14 @@ Complete API and advanced usage
     api/index.rst
 
 
+Contributing
+============
+
+.. toctree::
+
+    contribute/index.rst
+
+
 Indices and tables
 ==================
 
