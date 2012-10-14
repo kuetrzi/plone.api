@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """Tests for plone.api user manipulation."""
 
-import unittest2 as unittest
-import mock
-from Products.CMFCore.utils import getToolByName
-
 from plone import api
 from plone.api.tests.base import INTEGRATION_TESTING
 from plone.app.testing import logout
 from plone.app.testing import TEST_USER_NAME
+from Products.CMFCore.utils import getToolByName
+
+import mock
+import unittest2 as unittest
 
 
 class TestPloneApiUser(unittest.TestCase):

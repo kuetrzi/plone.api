@@ -1,7 +1,7 @@
 """ Module that provides functionality for user manipulation """
 
-from Products.CMFPlone.utils import getToolByName
 from plone.api import portal
+from Products.CMFPlone.utils import getToolByName
 
 import random
 import string

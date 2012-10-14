@@ -1,6 +1,7 @@
 """ Module that provides functionality for group manipulation """
-from Products.CMFCore.utils import getToolByName
+
 from plone.api import portal
+from Products.CMFCore.utils import getToolByName
 
 
 def create(groupname=None,
