@@ -1,4 +1,5 @@
-""" Module that provides functionality for user manipulation """
+# -*- coding: utf-8 -*-
+"""Module that provides functionality for user manipulation."""
 
 from plone.api import portal
 from Products.CMFPlone.utils import getToolByName

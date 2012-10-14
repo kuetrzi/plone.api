@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""Exceptions raised by plone.api methods."""
+
+
 class PloneApiError(Exception):
     """Base exception class for plone.api errors."""
 

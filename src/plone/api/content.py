@@ -1,4 +1,5 @@
-""" Module that provides functionality for content manipulation """
+# -*- coding: utf-8 -*-
+"""Module that provides functionality for content manipulation."""
 
 from App.config import getConfiguration
 from plone.api import portal
